@@ -1,0 +1,11 @@
+{
+    "name":     "wptreport"
+,   "version":  "0.0.1"
+,   "license": "MIT"
+,   "dependencies": {
+        "nopt":     "2.2.0"
+    }
+,   "bin":  {
+        "wptreport":    "./index.js"
+    }
+}
