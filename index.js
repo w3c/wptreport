@@ -14,20 +14,17 @@ var fs = require("fs")
 ,   knownOpts = {
                     "input" :   String
                 ,   "output" :  String
-                ,   "force":    Boolean
                 ,   "help":     Boolean
                 }
 ,   shortHands = {
                     "i":    ["--input"]
                 ,   "o":    ["--output"]
-                ,   "f":    ["--force"]
                 ,   "h":    ["--help"]
                 }
 ,   parsed = nopt(knownOpts, shortHands)
 ,   options = {
         input:  parsed.input || cwd
     ,   output: parsed.output || cwd
-    ,   force:  parsed.force || false
     ,   help:   parsed.help || false
     }
 ,   err = function (str) {
@@ -43,7 +40,17 @@ var fs = require("fs")
 ;
 
 if (options.help) {
-    console.log("XXX USAGE");
+    console.log([
+        "wptreport [--input /path/to/dir] [--output /path/to/dir]"
+    ,   "   Generate nice-looking reports of various types based on test run reports coming"
+    ,   "   out of Web Platform Tests."
+    ,   ""
+    ,   "   --input, -i  <directory> that contains all the JSON. JSON files must match the pattern"
+    ,   "                \\w{2}\\d{d}\\.json. Defaults to the current directory."
+    ,   "   --output, -o <directory> where the generated reports are stored. Defaults to the current"
+    ,   "                directory."
+    ,   "   --help       Produces this message."
+    ].join("\n"));
     process.exit(0);
 }
 
