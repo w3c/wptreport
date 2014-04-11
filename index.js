@@ -61,6 +61,7 @@ var fs = require("fs-extra")
 ,   totalSubtests = 0
 ,   uaPass = {}
 ,   tables = {}
+,   copyFiles = "analysis.css jquery.min.js sticky-headers.js".split(" ")
 ;
 
 if (options.help) {
@@ -286,3 +287,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + ua.join
     );
 }());
 
+// copy resources over
+copyFiles.forEach(function (f) {
+    fs.copySync(jn(res, f), jn(options.output, f));
+});
