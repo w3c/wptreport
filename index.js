@@ -17,19 +17,22 @@ var fs = require("fs-extra")
                 ,   "output" :  String
                 ,   "help":     Boolean
                 ,   "spec":     String
+                ,   "version":  Boolean
                 }
 ,   shortHands = {
                     "i":    ["--input"]
                 ,   "o":    ["--output"]
                 ,   "h":    ["--help"]
                 ,   "s":    ["--spec"]
+                ,   "v":    ["--version"]
                 }
 ,   parsed = nopt(knownOpts, shortHands)
 ,   options = {
-        input:  parsed.input || cwd
-    ,   output: parsed.output || cwd
-    ,   help:   parsed.help || false
-    ,   spec:   parsed.spec || ""
+        input:      parsed.input || cwd
+    ,   output:     parsed.output || cwd
+    ,   help:       parsed.help || false
+    ,   version:    parsed.version || false
+    ,   spec:       parsed.spec || ""
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ,   out = {
@@ -78,8 +81,14 @@ if (options.help) {
     ,   "                directory."
     ,   "   --spec, -s SpecName to use in titling the report."
     ,   "   --help       Produces this message."
+    ,   "   --version    Produces the version number."
     ,   ""
     ].join("\n"));
+    process.exit(0);
+}
+
+if (options.version) {
+    console.log("wptreport " + require("./package.json").version);
     process.exit(0);
 }
 

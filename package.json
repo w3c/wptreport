@@ -1,6 +1,6 @@
 {
     "name":     "wptreport"
-,   "version":  "0.0.2"
+,   "version":  "0.0.3"
 ,   "license": "MIT"
 ,   "dependencies": {
         "nopt":     "2.2.0"
