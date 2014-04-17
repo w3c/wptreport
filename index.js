@@ -65,7 +65,7 @@ var fs = require("fs-extra")
 ,   totalSubtests = 0
 ,   uaPass = {}
 ,   tables = {}
-,   copyFiles = "analysis.css jquery.min.js sticky-headers.js".split(" ")
+,   copyFiles = "analysis.css jquery.min.js sticky-headers.js bootstrap.min.css".split(" ")
 ;
 
 if (options.help) {
@@ -80,8 +80,8 @@ if (options.help) {
     ,   "   --output, -o <directory> where the generated reports are stored. Defaults to the current"
     ,   "                directory."
     ,   "   --spec, -s SpecName to use in titling the report."
-    ,   "   --help       Produces this message."
-    ,   "   --version    Produces the version number."
+    ,   "   --help, -h to produce this message."
+    ,   "   --version, -v to show the version number."
     ,   ""
     ].join("\n"));
     process.exit(0);
