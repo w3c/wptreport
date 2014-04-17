@@ -47,6 +47,7 @@ var fs = require("fs-extra")
         process.exit(1);
     }
 ,   esc = function (str) {
+        if (str === undefined) return "-";
         if (!str) return str;
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
