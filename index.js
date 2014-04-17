@@ -183,7 +183,6 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
             table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
         }
     }
-    table += "</table>";
     toc += "</ol>";
 
     var meta = "<p><strong>Test files</strong>: " + all.length + 
@@ -233,7 +232,6 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
             table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
         }
     }
-    table += "</table>";
     toc += "</ol>";
 
     var meta = "<p><strong>Test files without 2 passes</strong>: " + lessThanTwo.length +
@@ -274,7 +272,6 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
             table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
         }
     }
-    table += "</table>";
     toc += "</ol>";
 
     var meta = "<p><strong>Completely failed files</strong>: " + lessThanTwo.length +
