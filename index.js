@@ -9,7 +9,7 @@ var fs = require("fs-extra")
 ,   resDir = jn(dn, "res")
 ,   rfs = function (path) { return fs.readFileSync(path, "utf8"); }
 ,   wfs = function (path, content) { fs.writeFileSync(path, content, { encoding: "utf8" }); }
-// ,   rjson = function (path) { return JSON.parse(rfs(path)); }
+,   rjson = function (path) { return JSON.parse(rfs(path)); }
 ,   wjson = function (path, obj) { wfs(path, JSON.stringify(obj, null, 2)); }
 ,   tmpl = rfs(jn(resDir, "template.html"))
 ,   knownOpts = {
@@ -70,6 +70,7 @@ var fs = require("fs-extra")
 ,   totalSubtests = 0
 ,   uaPass = {}
 ,   copyFiles = "analysis.css jquery.min.js sticky-headers.js bootstrap.min.css".split(" ")
+,   filter = {}
 ;
 
 if (options.help) {
@@ -80,7 +81,8 @@ if (options.help) {
     ,   "   out of Web Platform Tests."
     ,   ""
     ,   "   --input, -i  <directory> that contains all the JSON. JSON files must match the pattern"
-    ,   "                \\w{2}\\d{d}\\.json. Defaults to the current directory."
+    ,   "                \\w{2}\\d{d}\\.json. Defaults to the current directory. This is also where"
+    ,   "                the filter.js is found, if any."
     ,   "   --output, -o <directory> where the generated reports are stored. Defaults to the current"
     ,   "                directory."
     ,   "   --spec, -s SpecName to use in titling the report."
@@ -103,11 +105,20 @@ fs.readdirSync(options.input)
     .forEach(function (f) {
         if (!/^\w\w\d\d\.json$/.test(f)) return;
         reports.push(f);
-        consolidated[f.replace(/\.json$/, "")] = JSON.parse(rfs(jn(options.input, f)));
+        consolidated[f.replace(/\.json$/, "")] = rjson(jn(options.input, f));
     })
 ;
 
 if (!reports.length) err("No JSON reports matching \\w\\w\\d\\d.json in input directory: " + options.input);
+
+// filtering
+// The way this works is simple: if there is a filter.js file in the input directory, it is loaded
+// like a module. Its excludeFile(file) and excludeCase(file, name) are called. If true is returned
+// for the first one, the whole test file is skipped; for the latter it's on a case by case basis.
+// Both have default implementations that accept everything (i.e. always return false)
+if (fs.existsSync(jn(options.input, "filter.js"))) filter = require(jn(options.input, "filter.js"));
+if (!filter.excludeFile) filter.excludeFile = function () { return false; };
+if (!filter.excludeCase) filter.excludeCase = function () { return false; };
 
 // consolidation
 for (var agent in consolidated) {
@@ -116,6 +127,7 @@ for (var agent in consolidated) {
         var testData = consolidated[agent].results[i]
         ,   id = testData.test
         ;
+        if (filter.excludeFile(id)) continue;
         if (!out.results[id]) {
             out.results[id] = {
                 byUA:       {}
@@ -130,6 +142,7 @@ for (var agent in consolidated) {
             var st = testData.subtests[j]
             ,   stName = st.name
             ;
+            if (filter.excludeCase(id, stName)) continue;
             if (stName === "constructor") stName = "_constructor";
             if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
             out.results[id].subtests[stName].byUA[agent] = st.status;
