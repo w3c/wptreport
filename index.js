@@ -9,7 +9,7 @@ var fs = require("fs-extra")
 ,   resDir = jn(dn, "res")
 ,   rfs = function (path) { return fs.readFileSync(path, "utf8"); }
 ,   wfs = function (path, content) { fs.writeFileSync(path, content, { encoding: "utf8" }); }
-,   rjson = function (path) { return JSON.parse(rfs(path)); }
+// ,   rjson = function (path) { return JSON.parse(rfs(path)); }
 ,   wjson = function (path, obj) { wfs(path, JSON.stringify(obj, null, 2)); }
 ,   tmpl = rfs(jn(resDir, "template.html"))
 ,   knownOpts = {
@@ -49,7 +49,11 @@ var fs = require("fs-extra")
 ,   esc = function (str) {
         if (str === undefined) return "-";
         if (!str) return str;
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return str.replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace("_constructor", "constructor")
+        ;
     }
 ,   interpolate = function (data) {
         return tmpl.replace(/\{\{(\w+)\}\}/g, function (m, p1) {
@@ -65,7 +69,6 @@ var fs = require("fs-extra")
 ,   consolidated = {}
 ,   totalSubtests = 0
 ,   uaPass = {}
-,   tables = {}
 ,   copyFiles = "analysis.css jquery.min.js sticky-headers.js bootstrap.min.css".split(" ")
 ;
 
@@ -124,11 +127,14 @@ for (var agent in consolidated) {
         if (!out.results[id].totals[testData.status]) out.results[id].totals[testData.status] = 1;
         else out.results[id].totals[testData.status]++;
         for (var j = 0, m = testData.subtests.length; j < m; j++) {
-            var st = testData.subtests[j];
-            if (!out.results[id].subtests[st.name]) out.results[id].subtests[st.name] = { byUA: {}, totals: {} };
-            out.results[id].subtests[st.name].byUA[agent] = st.status;
-            if (!out.results[id].subtests[st.name].totals[st.status]) out.results[id].subtests[st.name].totals[st.status] = 1;
-            else out.results[id].subtests[st.name].totals[st.status]++;
+            var st = testData.subtests[j]
+            ,   stName = st.name
+            ;
+            if (stName === "constructor") stName = "_constructor";
+            if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+            out.results[id].subtests[stName].byUA[agent] = st.status;
+            if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
+            else out.results[id].subtests[stName].totals[st.status]++;
         }
     }
 }
@@ -176,7 +182,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         var test = all[i];
         table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a></td>" + cells(test.status) + "</tr>\n";
-        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a></li>";
+        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a></li>\n";
         for (var j = 0, m = test.subtests.length; j < m; j++) {
             var st = test.subtests[j];
             subtests++;
@@ -225,7 +231,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ;
         table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
-        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>";
+        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>\n";
         for (var j = 0, m = test.fails.length; j < m; j++) {
             var st = test.fails[j];
             fails++;
@@ -265,7 +271,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ;
         table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
-        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>";
+        toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>\n";
         for (var j = 0, m = test.boom.length; j < m; j++) {
             var st = test.boom[j];
             fails++;
