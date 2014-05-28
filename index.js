@@ -47,7 +47,7 @@ var fs = require("fs-extra")
         process.exit(1);
     }
 ,   esc = function (str) {
-        if (str === undefined) return "-";
+        if (str === undefined || str === "ManualCheckNeeded") return "-";
         if (!str) return str;
         return str.replace(/&/g, "&amp;")
                   .replace(/</g, "&lt;")
@@ -166,6 +166,13 @@ for (var test in out.results) {
     ,   total:      0
     };
     for (var n in run.subtests) {
+        var haveResults = 0;
+        for (var i = 0, m = out.ua.length; i < m; i++) {
+            var res = run.subtests[n].byUA[out.ua[i]]
+            if (!res || res === "TIMEOUT" || res === "NOTRUN") continue;
+            haveResults++;
+        }
+        if (haveResults <= 1) continue; // skip tests with all but one undefined
         result.total++;
         totalSubtests++;
         if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, byUA: run.subtests[n].byUA });
