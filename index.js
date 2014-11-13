@@ -168,7 +168,7 @@ for (var test in out.results) {
     for (var n in run.subtests) {
         var haveResults = 0;
         for (var i = 0, m = out.ua.length; i < m; i++) {
-            var res = run.subtests[n].byUA[out.ua[i]]
+            var res = run.subtests[n].byUA[out.ua[i]];
             if (!res || res === "TIMEOUT" || res === "NOTRUN") continue;
             haveResults++;
         }
