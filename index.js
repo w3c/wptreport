@@ -212,20 +212,8 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     toc += "</ol>";
 
     var meta = "<p><strong>Test files</strong>: " + all.length + 
-               "; <strong>Total subtests</strong>: " + subtests + "</p>" +
-               "<h3>Per UA</h3>\n<dl>"
+               "; <strong>Total subtests</strong>: " + subtests + "</p>"
     ;
-    var orderedUA = [].concat(out.ua).sort(function (a, b) {
-        if (uaPass[a] > uaPass[b]) return -1;
-        if (uaPass[a] < uaPass[b]) return 1;
-        return 0;
-    });
-    for (var i = 0, n = orderedUA.length; i < n; i++) {
-        var u = orderedUA[i];
-        meta += "<dt>" + u + "</dt>\n" +
-                "<dd>" + uaPass[u] + "/" + subtests + " (" + (100*uaPass[u]/subtests).toFixed(2) +"%)" + "</dd>\n";
-    }
-    meta += "</dl>";
 
     wfs(jn(options.output, "all.html")
     ,   interpolate({
