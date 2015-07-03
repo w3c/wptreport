@@ -1,10 +1,10 @@
 {
     "name":     "wptreport"
-,   "version":  "0.1.2"
+,   "version":  "0.2.0"
 ,   "license": "MIT"
 ,   "dependencies": {
-        "nopt":     "2.2.0"
-    ,   "fs-extra": "0.8.1"
+        "nopt":     "3.0.3"
+    ,   "fs-extra": "0.20.1"
     }
 ,   "bin":  {
         "wptreport":    "./index.js"
