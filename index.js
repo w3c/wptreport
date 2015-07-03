@@ -128,6 +128,7 @@ for (var agent in consolidated) {
         ,   id = testData.test
         ;
         if (filter.excludeFile(id)) continue;
+        if (!testData.subtests.length && filter.excludeCase(id, id)) continue; // manual/reftests
         if (!out.results[id]) {
             out.results[id] = {
                 byUA:       {}
@@ -140,8 +141,12 @@ for (var agent in consolidated) {
         else out.results[id].totals[testData.status]++;
         // manual and reftests don't have subtests, the top level test *is* the subtest
         if (!testData.subtests.length) {
-            // XXX need to do the same as below
-            
+            var stName = id;
+            if (stName === "constructor") stName = "_constructor";
+            if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+            out.results[id].subtests[stName].byUA[agent] = testData.status;
+            if (!out.results[id].subtests[stName].totals[testData.status]) out.results[id].subtests[stName].totals[testData.status] = 1;
+            else out.results[id].subtests[stName].totals[testData.status]++;
         }
         else {
             for (var j = 0, m = testData.subtests.length; j < m; j++) {
