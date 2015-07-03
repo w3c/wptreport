@@ -13,18 +13,18 @@ var fs = require("fs-extra")
 ,   wjson = function (path, obj) { wfs(path, JSON.stringify(obj, null, 2)); }
 ,   tmpl = rfs(jn(resDir, "template.html"))
 ,   knownOpts = {
-                    "input" :   String
-                ,   "output" :  String
-                ,   "help":     Boolean
-                ,   "spec":     String
-                ,   "version":  Boolean
+                    input:      String
+                ,   output:     String
+                ,   help:       Boolean
+                ,   spec:       String
+                ,   version:    Boolean
                 }
 ,   shortHands = {
-                    "i":    ["--input"]
-                ,   "o":    ["--output"]
-                ,   "h":    ["--help"]
-                ,   "s":    ["--spec"]
-                ,   "v":    ["--version"]
+                    i:      ["--input"]
+                ,   o:      ["--output"]
+                ,   h:      ["--help"]
+                ,   s:      ["--spec"]
+                ,   v:      ["--version"]
                 }
 ,   parsed = nopt(knownOpts, shortHands)
 ,   options = {
@@ -138,16 +138,23 @@ for (var agent in consolidated) {
         out.results[id].byUA[agent] = testData.status;
         if (!out.results[id].totals[testData.status]) out.results[id].totals[testData.status] = 1;
         else out.results[id].totals[testData.status]++;
-        for (var j = 0, m = testData.subtests.length; j < m; j++) {
-            var st = testData.subtests[j]
-            ,   stName = st.name
-            ;
-            if (filter.excludeCase(id, stName)) continue;
-            if (stName === "constructor") stName = "_constructor";
-            if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
-            out.results[id].subtests[stName].byUA[agent] = st.status;
-            if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
-            else out.results[id].subtests[stName].totals[st.status]++;
+        // manual and reftests don't have subtests, the top level test *is* the subtest
+        if (!testData.subtests.length) {
+            // XXX need to do the same as below
+            
+        }
+        else {
+            for (var j = 0, m = testData.subtests.length; j < m; j++) {
+                var st = testData.subtests[j]
+                ,   stName = st.name
+                ;
+                if (filter.excludeCase(id, stName)) continue;
+                if (stName === "constructor") stName = "_constructor";
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+                out.results[id].subtests[stName].byUA[agent] = st.status;
+                if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
+                else out.results[id].subtests[stName].totals[st.status]++;
+            }
         }
     }
 }
@@ -156,8 +163,8 @@ wjson(jn(options.output, "consolidated.json"), out);
 for (var i = 0, n = out.ua.length; i < n; i++) uaPass[out.ua[i]] = 0;
 
 for (var test in out.results) {
-    var run = out.results[test];
-    var result = {
+    var run = out.results[test]
+    ,   result = {
         status:     run.byUA
     ,   name:       test
     ,   fails:      []
@@ -211,7 +218,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     }
     toc += "</ol>";
 
-    var meta = "<p><strong>Test files</strong>: " + all.length + 
+    var meta = "<p><strong>Test files</strong>: " + all.length +
                "; <strong>Total subtests</strong>: " + subtests + "</p>"
     ;
 
@@ -222,7 +229,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ,   meta:  meta
         ,   toc:  toc
         })
-    );    
+    );
 }());
 
 // DO LESS THAN 2
@@ -234,8 +241,8 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     for (var i = 0, n = lessThanTwo.length; i < n; i++) {
         var test = lessThanTwo[i]
         ,   details = "<small>(" + test.fails.length + "/" + test.total + ", " +
-                     (100*test.fails.length/test.total).toFixed(2) + "%, " +
-                     (100*test.fails.length/totalSubtests).toFixed(2) + "% of total)</small>"
+                     (100 * test.fails.length / test.total).toFixed(2) + "%, " +
+                     (100 * test.fails.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
         table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
@@ -251,7 +258,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     var meta = "<p><strong>Test files without 2 passes</strong>: " + lessThanTwo.length +
                "; <strong>Subtests without 2 passes: </strong>" + fails +
                "; <strong>Failure level</strong>: " + fails + "/" + totalSubtests + " (" +
-               (100*fails/totalSubtests).toFixed(2) + "%)</p>"
+               (100 * fails / totalSubtests).toFixed(2) + "%)</p>"
     ;
 
     wfs(jn(options.output, "less-than-2.html")
@@ -274,8 +281,8 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     for (var i = 0, n = completeFail.length; i < n; i++) {
         var test = completeFail[i]
         ,   details = "<small>(" + test.boom.length + "/" + test.total + ", " +
-                     (100*test.boom.length/test.total).toFixed(2) + "%, " +
-                     (100*test.boom.length/totalSubtests).toFixed(2) + "% of total)</small>"
+                     (100 * test.boom.length / test.total).toFixed(2) + "%, " +
+                     (100 * test.boom.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
         table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
@@ -291,7 +298,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
     var meta = "<p><strong>Completely failed files</strong>: " + lessThanTwo.length +
                "; <strong>Completely failed subtests</strong>: " + fails +
                "; <strong>Failure level</strong>: " + fails + "/" + totalSubtests + " (" +
-               (100*fails/totalSubtests).toFixed(2) + "%)</p>"
+               (100 * fails / totalSubtests).toFixed(2) + "%)</p>"
     ;
 
     wfs(jn(options.output, "complete-fails.html")
