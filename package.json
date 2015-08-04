@@ -1,5 +1,12 @@
 {
     "name":     "wptreport"
+,   "description": "Report generator for Web Platform Test result sets"
+,   "homepage": "https://github.com/darobin/wptreport"
+,   "repository": {
+        "type": "git"
+    ,   "url" : "https://github.com/darobin/wptreport.git"
+    }
+,   "bugs": "https://github.com/darobin/wptreport/issues"
 ,   "version":  "0.2.0"
 ,   "license": "MIT"
 ,   "dependencies": {
@@ -9,4 +16,12 @@
 ,   "bin":  {
         "wptreport":    "./index.js"
     }
+,   "keywords": [
+        "web"
+    ,   "platform"
+    ,   "test"
+    ,   "tests"
+    ,   "results"
+    ,   "wpt"
+    ]
 }
