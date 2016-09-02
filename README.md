@@ -24,7 +24,7 @@ the code pretty much anytime I make a change), you can alternatively
 
 This is a command-line tool, it takes some basic options.
 
-`wptreport [--input /path/to/dir] [--output /path/to/dir] [--spec SpecName]`
+`wptreport [--input /path/to/dir] [--output /path/to/dir] [--spec SpecName] [--markdown]`
 
 * `--input <directory>`, `-i  <directory>`: Path to the directory that contains all the JSON data. 
   JSON files must match the pattern `\w{2}\d{d}\.json` where the two first letters are an identifier 
@@ -35,6 +35,7 @@ This is a command-line tool, it takes some basic options.
   Defaults to the current directory.
 * `--spec SpecName`, `-s SpecName`: The specification name to use in titling the report. Optional, 
   but certainly looks nicer.
+* `--markdown`, `-m`: Support markdown in subtest "names"
 * `--help`, `-h`: Get some help (about the tool, you're on your own for your other issues).
 * `--version`, `-v`: Get the version number.
 
