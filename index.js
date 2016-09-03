@@ -66,6 +66,7 @@ var fs = require("fs-extra")
         return res;
     }
 ,   reports = []
+,   subtestsPerTest = {}
 ,   consolidated = {}
 ,   totalSubtests = 0
 ,   uaPass = {}
@@ -120,6 +121,17 @@ if (fs.existsSync(jn(options.input, "filter.js"))) filter = require(jn(options.i
 if (!filter.excludeFile) filter.excludeFile = function () { return false; };
 if (!filter.excludeCase) filter.excludeCase = function () { return false; };
 
+// prepare list of tests with subtests
+// (used during consolidation to tell whether a "fake" subtest needs to be created)
+Object.keys(consolidated).forEach(function (agent) {
+    consolidated[agent].results.forEach(function (testData) {
+        var id = testData.test;
+        if (filter.excludeFile(id)) return;
+        if (!testData.subtests.length) return;
+        subtestsPerTest[id] = true;
+    });
+});
+
 // consolidation
 for (var agent in consolidated) {
     out.ua.push(agent);
@@ -139,14 +151,19 @@ for (var agent in consolidated) {
         out.results[id].byUA[agent] = testData.status;
         if (!out.results[id].totals[testData.status]) out.results[id].totals[testData.status] = 1;
         else out.results[id].totals[testData.status]++;
-        // manual and reftests don't have subtests, the top level test *is* the subtest
+        // manual and reftests don't have subtests, the top level test *is* the subtest.
+        // Now, subtests may be defined in another report. This can happen if the whole test timeouts
+        // in an agent without reporting individual subtest results for instance. No need to create a
+        // "fake" subtest from the top-level test in that case.
         if (!testData.subtests.length) {
-            var stName = id;
-            if (stName === "constructor") stName = "_constructor";
-            if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
-            out.results[id].subtests[stName].byUA[agent] = testData.status;
-            if (!out.results[id].subtests[stName].totals[testData.status]) out.results[id].subtests[stName].totals[testData.status] = 1;
-            else out.results[id].subtests[stName].totals[testData.status]++;
+            if (!subtestsPerTest[id]) {
+                var stName = id;
+                if (stName === "constructor") stName = "_constructor";
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+                out.results[id].subtests[stName].byUA[agent] = testData.status;
+                if (!out.results[id].subtests[stName].totals[testData.status]) out.results[id].subtests[stName].totals[testData.status] = 1;
+                else out.results[id].subtests[stName].totals[testData.status]++;
+            }
         }
         else {
             for (var j = 0, m = testData.subtests.length; j < m; j++) {
@@ -178,13 +195,6 @@ for (var test in out.results) {
     ,   total:      0
     };
     for (var n in run.subtests) {
-        var haveResults = 0;
-        for (var i = 0, m = out.ua.length; i < m; i++) {
-            var res = run.subtests[n].byUA[out.ua[i]];
-            if (!res || res === "TIMEOUT" || res === "NOTRUN") continue;
-            haveResults++;
-        }
-        if (haveResults <= 1) continue; // skip tests with all but one undefined
         result.total++;
         totalSubtests++;
         if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, byUA: run.subtests[n].byUA });
