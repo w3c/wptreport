@@ -24,7 +24,6 @@ var fs = require("fs-extra")
       ,   help:       Boolean
       ,   markdown:   Boolean
       ,   failures:   Boolean
-      ,   single:     Boolean
       ,   spec:       String
       ,   version:    Boolean
   }
@@ -35,7 +34,6 @@ var fs = require("fs-extra")
     ,   m:      ["--markdown"]
     ,   f:      ["--failures"]
     ,   s:      ["--spec"]
-    ,   1:      ["--single"]
     ,   v:      ["--version"]
   }
   ,   parsed = nopt(knownOpts, shortHands)
@@ -46,7 +44,6 @@ var fs = require("fs-extra")
       ,   failures:   parsed.failures || false
       ,   markdown:   parsed.markdown || false
       ,   version:    parsed.version || false
-      ,   single:     parsed.single || false
       ,   spec:       parsed.spec || ""
   }
 ,   prefix = options.spec ? options.spec + ": " : ""
@@ -77,11 +74,7 @@ var fs = require("fs-extra")
 }
 ,   cells = function (data) {
   var res = "";
-  for (var i = 0, n = out.ua.length; i < n; i++) {
-    if (data[out.ua[i]]) {
-      res += "<td class='" + data[out.ua[i]] + "'>" + esc(data[out.ua[i]]) + "</td>";
-    }
-  };
+  for (var i = 0, n = out.ua.length; i < n; i++) res += "<td class='" + data[out.ua[i]] + "'>" + esc(data[out.ua[i]]) + "</td>";
   return res;
 }
 ,   messages = function (data) {
@@ -135,7 +128,6 @@ if (options.help) {
       ,   "   --failures, -f to include any failure message text"
       ,   "   --markdown, -m to interpret subtest name as Markdown"
       ,   "   --spec, -s SpecName to use in titling the report."
-      ,   "   --single, -1 to permit inclusion of single results (ignored by default)"
       ,   "   --help, -h to produce this message."
       ,   "   --version, -v to show the version number."
       ,   ""
@@ -243,7 +235,7 @@ for (var test in out.results) {
       if (!res || res === "TIMEOUT" || res === "NOTRUN") continue;
       haveResults++;
     }
-    if (!options.single && haveResults <= 1) continue; // skip tests with all but one undefined
+    if (haveResults <= 1) continue; // skip tests with all but one undefined
     result.total++;
     totalSubtests++;
     if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, UAmessage: run.subtests[n].UAmessage, byUA: run.subtests[n].byUA });
