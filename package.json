@@ -12,6 +12,7 @@
 ,   "dependencies": {
         "nopt":     "3.0.3"
     ,   "fs-extra": "0.20.1"
+    ,   "showdown": "1.4.3"
     }
 ,   "bin":  {
         "wptreport":    "./index.js"

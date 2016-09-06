@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+/* globals showdown */
+/* jshint laxcomma:true, strict:false, -W116 */
+
 var fs = require("fs-extra")
 ,   pth = require("path")
 ,   nopt = require("nopt")
@@ -18,6 +21,8 @@ var fs = require("fs-extra")
                 ,   help:       Boolean
                 ,   spec:       String
                 ,   version:    Boolean
+                ,   markdown:   Boolean
+                ,   failures:   Boolean
                 }
 ,   shortHands = {
                     i:      ["--input"]
@@ -25,6 +30,8 @@ var fs = require("fs-extra")
                 ,   h:      ["--help"]
                 ,   s:      ["--spec"]
                 ,   v:      ["--version"]
+                ,   m:      ["--markdown"]
+                ,   f:      ["--failures"]
                 }
 ,   parsed = nopt(knownOpts, shortHands)
 ,   options = {
@@ -33,6 +40,8 @@ var fs = require("fs-extra")
     ,   help:       parsed.help || false
     ,   version:    parsed.version || false
     ,   spec:       parsed.spec || ""
+    ,   failures:   parsed.failures || false
+    ,   markdown:   parsed.markdown || false
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ,   out = {
@@ -72,7 +81,36 @@ var fs = require("fs-extra")
 ,   uaPass = {}
 ,   copyFiles = "analysis.css jquery.min.js sticky-headers.js bootstrap.min.css".split(" ")
 ,   filter = {}
+,   showdown = require("showdown")
+,   messages = function (data) {
+        var res = "";
+        for (var i = 0, n = out.ua.length; i < n; i++) {
+            if (data.hasOwnProperty(out.ua[i])) {
+              var message = options.markdown ? markdown.makeHtml(data[out.ua[i]]) : esc(data[out.ua[i]]) ;
+              res += "<tr class='message'><td class='ua'>"+out.ua[i]+":</td><td> "+message+"</td></tr>\n";
+            }
+        }
+        if (res !== "") {
+            res = "<tr class='messages'><td colspan='" + (n+1) + "'><table>"+res+"</table></td></tr>\n";
+        }
+        return res;
+    }
 ;
+
+showdown.extension('strip', function() {
+    return [
+    { type: 'output',
+        regex: /<p>/,
+        replace: ''
+    },
+    { type: 'output',
+        regex: /<\/p>$/,
+        replace: ''
+    }
+    ];
+});
+
+var markdown = new showdown.Converter({ extensions: [ 'strip' ] });
 
 if (options.help) {
     console.log([
@@ -86,6 +124,8 @@ if (options.help) {
     ,   "                the filter.js is found, if any."
     ,   "   --output, -o <directory> where the generated reports are stored. Defaults to the current"
     ,   "                directory."
+    ,   "   --failures, -f to include any failure message text"
+    ,   "   --markdown, -m to interpret subtest name as Markdown"
     ,   "   --spec, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
@@ -144,9 +184,14 @@ for (var agent in consolidated) {
         if (!out.results[id]) {
             out.results[id] = {
                 byUA:       {}
+            ,   UAmessage:  {}
             ,   totals:     {}
             ,   subtests:   {}
             };
+        }
+        // if there is a message, then capture it so we can include it in the output
+        if (testData.hasOwnProperty("message") && testData.message !== null) {
+            out.results[id].UAmessage[agent] = testData.message;
         }
         out.results[id].byUA[agent] = testData.status;
         if (!out.results[id].totals[testData.status]) out.results[id].totals[testData.status] = 1;
@@ -159,7 +204,7 @@ for (var agent in consolidated) {
             if (!subtestsPerTest[id]) {
                 var stName = id;
                 if (stName === "constructor") stName = "_constructor";
-                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, UAmessage: {}, totals: {} };
                 out.results[id].subtests[stName].byUA[agent] = testData.status;
                 if (!out.results[id].subtests[stName].totals[testData.status]) out.results[id].subtests[stName].totals[testData.status] = 1;
                 else out.results[id].subtests[stName].totals[testData.status]++;
@@ -172,10 +217,13 @@ for (var agent in consolidated) {
                 ;
                 if (filter.excludeCase(id, stName)) continue;
                 if (stName === "constructor") stName = "_constructor";
-                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, totals: {} };
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, UAmessage: {}, totals: {} };
                 out.results[id].subtests[stName].byUA[agent] = st.status;
                 if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
                 else out.results[id].subtests[stName].totals[st.status]++;
+                if (st.hasOwnProperty("message") && st.message !== null) {
+                    out.results[id].subtests[stName].UAmessage[agent] = st.message;
+                } 
             }
         }
     }
@@ -197,22 +245,24 @@ for (var test in out.results) {
     for (var n in run.subtests) {
         result.total++;
         totalSubtests++;
-        if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, byUA: run.subtests[n].byUA });
-        if (!run.subtests[n].totals.PASS) result.boom.push({ name: n, byUA: run.subtests[n].byUA });
+        if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
+        if (!run.subtests[n].totals.PASS) result.boom.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
         for (var i = 0, m = out.ua.length; i < m; i++) {
             var res = run.subtests[n].byUA[out.ua[i]];
             if (res === "PASS") uaPass[out.ua[i]]++;
         }
-        result.subtests.push({ name: n, byUA: run.subtests[n].byUA });
+        result.subtests.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
     }
     if (result.fails.length) lessThanTwo.push(result);
     if (result.boom.length) completeFail.push(result);
     all.push(result);
 }
 
-var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
+var startTable = "<thead><tr class='persist-header'><th>Test <span class='message_toggle'>Show/Hide Messages</span></th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
 ,   startToc = "<h3>Test Files</h3>\n<ol class='toc'>"
+,   script = options.failures ? "window.setTimeout(function() { \n $('.message_toggle').show();\n$('.message_toggle').on('click', function() {\n$('.messages').toggle();\n});\n}, 1000);" : ""
 ;
+
 
 // DO ALL
 (function () {
@@ -228,7 +278,12 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         for (var j = 0, m = test.subtests.length; j < m; j++) {
             var st = test.subtests[j];
             subtests++;
-            table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
+            var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
+            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            if (st.hasOwnProperty("UAmessage") && options.failures) {
+                 // include rows with messages
+                 table += messages(st.UAmessage) ;
+            }
         }
     }
     toc += "</ol>";
@@ -243,6 +298,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ,   table: table
         ,   meta:  meta
         ,   toc:  toc
+        ,   script: script
         })
     );
 }());
@@ -265,7 +321,12 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         for (var j = 0, m = test.fails.length; j < m; j++) {
             var st = test.fails[j];
             fails++;
-            table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
+            var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
+            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            if (st.hasOwnProperty("UAmessage") && options.failures) {
+                 // include rows with messages
+                 table += messages(st.UAmessage) ;
+            }
         }
     }
     toc += "</ol>";
@@ -282,6 +343,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ,   table: table
         ,   meta:  meta
         ,   toc:  toc
+        ,   script: script
         })
     );
 }());
@@ -305,7 +367,12 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         for (var j = 0, m = test.boom.length; j < m; j++) {
             var st = test.boom[j];
             fails++;
-            table += "<tr class='subtest'><td>" + esc(st.name) + "</td>" + cells(st.byUA) + "</tr>\n";
+            var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
+            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            if (st.hasOwnProperty("UAmessage") && options.failures) {
+                 // include rows with messages
+                 table += messages(st.UAmessage) ;
+            }
         }
     }
     toc += "</ol>";
@@ -322,6 +389,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test</th><th>" + out.ua.
         ,   table: table
         ,   meta:  meta
         ,   toc:  toc
+        ,   script: script
         })
     );
 }());
