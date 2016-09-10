@@ -22,6 +22,7 @@ var fs = require("fs-extra")
                 ,   spec:       String
                 ,   version:    Boolean
                 ,   markdown:   Boolean
+                ,   description:String
                 ,   failures:   Boolean
                 }
 ,   shortHands = {
@@ -31,6 +32,7 @@ var fs = require("fs-extra")
                 ,   s:      ["--spec"]
                 ,   v:      ["--version"]
                 ,   m:      ["--markdown"]
+                ,   d:      ["--description"]
                 ,   f:      ["--failures"]
                 }
 ,   parsed = nopt(knownOpts, shortHands)
@@ -42,6 +44,7 @@ var fs = require("fs-extra")
     ,   spec:       parsed.spec || ""
     ,   failures:   parsed.failures || false
     ,   markdown:   parsed.markdown || false
+    ,   description:parsed.description || ""
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ,   out = {
@@ -126,6 +129,7 @@ if (options.help) {
     ,   "                directory."
     ,   "   --failures, -f to include any failure message text"
     ,   "   --markdown, -m to interpret subtest name as Markdown"
+    ,   "   --description, -d description file to use to annotation the report."
     ,   "   --spec, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
@@ -261,6 +265,7 @@ for (var test in out.results) {
 var startTable = "<thead><tr class='persist-header'><th>Test <span class='message_toggle'>Show/Hide Messages</span></th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
 ,   startToc = "<h3>Test Files</h3>\n<ol class='toc'>"
 ,   script = options.failures ? "window.setTimeout(function() { \n $('.message_toggle').show();\n$('.message_toggle').on('click', function() {\n$('.messages').toggle();\n});\n}, 1000);" : ""
+,   description = (options.description !== "") ? rfs(jn(options.input, options.description)) : ""
 ;
 
 
@@ -299,6 +304,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
         ,   meta:  meta
         ,   toc:  toc
         ,   script: script
+        ,   desc:   description
         })
     );
 }());
@@ -344,6 +350,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
         ,   meta:  meta
         ,   toc:  toc
         ,   script: script
+        ,   desc:   description
         })
     );
 }());
@@ -390,6 +397,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
         ,   meta:  meta
         ,   toc:  toc
         ,   script: script
+        ,   desc:   description
         })
     );
 }());
