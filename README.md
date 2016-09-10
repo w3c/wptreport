@@ -41,6 +41,9 @@ This is a command-line tool, it takes some basic options.
 * `--help`, `-h`: Get some help (about the tool, you're on your own for your other issues).
 * `--version`, `-v`: Get the version number.
 
+If there is a `wptreport.json` file in the input directory, options will be read from that file
+(but command line options will override those settings).
+
 The format of the JSON files is defined by the test runner.
 
 ## Filtering
