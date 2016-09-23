@@ -35,18 +35,6 @@ var fs = require("fs-extra")
                 ,   d:      ["--description"]
                 ,   f:      ["--failures"]
                 }
-,   parsed = nopt(knownOpts, shortHands)
-,   options = {
-        input:      parsed.input || cwd
-    ,   output:     parsed.output || cwd
-    ,   help:       parsed.help || false
-    ,   version:    parsed.version || false
-    ,   spec:       parsed.spec || ""
-    ,   failures:   parsed.failures || false
-    ,   markdown:   parsed.markdown || false
-    ,   description:parsed.description || ""
-    }
-,   prefix = options.spec ? options.spec + ": " : ""
 ,   out = {
         ua: []
     ,   results: {}
@@ -115,6 +103,27 @@ showdown.extension('strip', function() {
 
 var markdown = new showdown.Converter({ extensions: [ 'strip' ] });
 
+
+// parse the command line options so we know the input directory if any
+var parsed = nopt(knownOpts, shortHands)
+,   defaults = {} ;
+
+// Read in a defaults file if there is one
+if (fs.existsSync(jn(parsed.input || cwd, "wptreport.json"))) defaults = require(jn( parsed.input || cwd, "wptreport.json"));
+
+// now set the options, preferring command line, then options from file, then built-in defaults
+var options = {
+        input:      parsed.input || cwd
+    ,   output:     parsed.output || defaults['output'] || cwd
+    ,   help:       parsed.help || false
+    ,   version:    parsed.version || false
+    ,   spec:       parsed.spec || defaults['spec'] || ""
+    ,   failures:   parsed.failures || defaults['failures'] || false
+    ,   markdown:   parsed.markdown || defaults['markdown'] || false
+    }
+,   prefix = options.spec ? options.spec + ": " : ""
+;
+
 if (options.help) {
     console.log([
         "wptreport [--input /path/to/dir] [--output /path/to/dir] [--spec SpecName]"
@@ -124,15 +133,17 @@ if (options.help) {
     ,   ""
     ,   "   --input, -i  <directory> that contains all the JSON. JSON files must match the pattern"
     ,   "                \\w{2}\\d{d}\\.json. Defaults to the current directory. This is also where"
-    ,   "                the filter.js is found, if any."
-    ,   "   --output, -o <directory> where the generated reports are stored. Defaults to the current"
+    ,   "                the filter.js and wptreport.json are found, if any."
+    ,   "   --output*, -o <directory> where the generated reports are stored. Defaults to the current"
     ,   "                directory."
-    ,   "   --failures, -f to include any failure message text"
-    ,   "   --markdown, -m to interpret subtest name as Markdown"
-    ,   "   --description, -d description file to use to annotation the report."
-    ,   "   --spec, -s SpecName to use in titling the report."
+    ,   "   --failures*, -f to include any failure message text"
+    ,   "   --markdown*, -m to interpret subtest name as Markdown"
+    ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
+    ,   ""
+    ,   "  Options marked with asterisks above can also be set by putting their settings in a"
+    ,   "  wptreport.json file in the input directory."
     ,   ""
     ].join("\n"));
     process.exit(0);
