@@ -120,6 +120,7 @@ var options = {
     ,   spec:       parsed.spec || defaults['spec'] || ""
     ,   failures:   parsed.failures || defaults['failures'] || false
     ,   markdown:   parsed.markdown || defaults['markdown'] || false
+    ,   description:parsed.description || defaults['description'] || ""
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ;
@@ -138,6 +139,7 @@ if (options.help) {
     ,   "                directory."
     ,   "   --failures*, -f to include any failure message text"
     ,   "   --markdown*, -m to interpret subtest name as Markdown"
+    ,   "   --description*, -d description file to use to annotation the report."
     ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
