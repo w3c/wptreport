@@ -221,7 +221,7 @@ for (var agent in consolidated) {
             if (!subtestsPerTest[id]) {
                 var stName = id;
                 if (stName === "constructor") stName = "_constructor";
-                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, UAmessage: {}, totals: {} };
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { stNum: 0, byUA: {}, UAmessage: {}, totals: {} };
                 out.results[id].subtests[stName].byUA[agent] = testData.status;
                 if (!out.results[id].subtests[stName].totals[testData.status]) out.results[id].subtests[stName].totals[testData.status] = 1;
                 else out.results[id].subtests[stName].totals[testData.status]++;
@@ -234,7 +234,7 @@ for (var agent in consolidated) {
                 ;
                 if (filter.excludeCase(id, stName)) continue;
                 if (stName === "constructor") stName = "_constructor";
-                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { byUA: {}, UAmessage: {}, totals: {} };
+                if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { stNum: j, byUA: {}, UAmessage: {}, totals: {} };
                 out.results[id].subtests[stName].byUA[agent] = st.status;
                 if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
                 else out.results[id].subtests[stName].totals[st.status]++;
@@ -249,6 +249,8 @@ wjson(jn(options.output, "consolidated.json"), out);
 
 for (var i = 0, n = out.ua.length; i < n; i++) uaPass[out.ua[i]] = 0;
 
+var testCount = 0;
+
 for (var test in out.results) {
     var run = out.results[test]
     ,   result = {
@@ -258,17 +260,19 @@ for (var test in out.results) {
     ,   subtests:   []
     ,   boom:       []
     ,   total:      0
+    ,   testNum:    testCount
     };
+    testCount ++;
     for (var n in run.subtests) {
         result.total++;
         totalSubtests++;
-        if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
-        if (!run.subtests[n].totals.PASS) result.boom.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
+        if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
+        if (!run.subtests[n].totals.PASS) result.boom.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
         for (var i = 0, m = out.ua.length; i < m; i++) {
             var res = run.subtests[n].byUA[out.ua[i]];
             if (res === "PASS") uaPass[out.ua[i]]++;
         }
-        result.subtests.push({ name: n, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
+        result.subtests.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
     }
     if (result.fails.length) lessThanTwo.push(result);
     if (result.boom.length) completeFail.push(result);
@@ -277,7 +281,7 @@ for (var test in out.results) {
 
 var startTable = "<thead><tr class='persist-header'><th>Test <span class='message_toggle'>Show/Hide Messages</span></th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
 ,   startToc = "<h3>Test Files</h3>\n<ol class='toc'>"
-,   script = options.failures ? "window.setTimeout(function() { \n $('.message_toggle').show();\n$('.message_toggle').on('click', function() {\n$('.messages').toggle();\n});\n}, 1000);" : ""
+,   script = options.failures ? "window.setTimeout(function() { \n $('.message_toggle').show();\n $('.messages').toggle(); \n $('.message_toggle').on('click', function() {\n$('.messages').toggle();\n});\n}, 1000);" : ""
 ,   description = (options.description !== "") ? rfs(jn(options.input, options.description)) : ""
 ;
 
@@ -290,14 +294,14 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
     ;
     for (var i = 0, n = all.length; i < n; i++) {
         var test = all[i];
-        table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
+        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a></td>" + cells(test.status) + "</tr>\n";
         toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a></li>\n";
         for (var j = 0, m = test.subtests.length; j < m; j++) {
             var st = test.subtests[j];
             subtests++;
             var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
-            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            table += "<tr id='subtest-" + test.testNum + "-" + st.stNum +"' class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
             if (st.hasOwnProperty("UAmessage") && options.failures) {
                  // include rows with messages
                  table += messages(st.UAmessage) ;
@@ -334,14 +338,14 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
                      (100 * test.fails.length / test.total).toFixed(2) + "%, " +
                      (100 * test.fails.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
-        table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
+        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
         toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>\n";
         for (var j = 0, m = test.fails.length; j < m; j++) {
             var st = test.fails[j];
             fails++;
             var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
-            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            table += "<tr id='subtest-" +test.testNum+"-"+st.stNum+"' class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
             if (st.hasOwnProperty("UAmessage") && options.failures) {
                  // include rows with messages
                  table += messages(st.UAmessage) ;
@@ -381,14 +385,14 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
                      (100 * test.boom.length / test.total).toFixed(2) + "%, " +
                      (100 * test.boom.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
-        table += "<tr class='test' id='test-file-" + i + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
+        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='http://www.w3c-test.org" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
         toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>\n";
         for (var j = 0, m = test.boom.length; j < m; j++) {
             var st = test.boom[j];
             fails++;
             var name = options.markdown ? markdown.makeHtml(st.name) : esc(st.name) ;
-            table += "<tr class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
+            table += "<tr id='subtest-" + test.testNum+"-"+st.stNum+"' class='subtest'><td>" + name + "</td>" + cells(st.byUA) + "</tr>\n";
             if (st.hasOwnProperty("UAmessage") && options.failures) {
                  // include rows with messages
                  table += messages(st.UAmessage) ;
