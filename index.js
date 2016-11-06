@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* globals showdown */
-/* jshint laxcomma:true, strict:false, -W116 */
+/* jshint sub:true, laxcomma:true, strict:false, -W116 */
 
 var fs = require("fs-extra")
 ,   pth = require("path")
@@ -23,6 +23,7 @@ var fs = require("fs-extra")
                 ,   version:    Boolean
                 ,   markdown:   Boolean
                 ,   description:String
+                ,   rollup:     Boolean
                 ,   failures:   Boolean
                 }
 ,   shortHands = {
@@ -33,6 +34,7 @@ var fs = require("fs-extra")
                 ,   v:      ["--version"]
                 ,   m:      ["--markdown"]
                 ,   d:      ["--description"]
+                ,   r:      ["--rollup"]
                 ,   f:      ["--failures"]
                 }
 ,   out = {
@@ -121,6 +123,7 @@ var options = {
     ,   failures:   parsed.failures || defaults['failures'] || false
     ,   markdown:   parsed.markdown || defaults['markdown'] || false
     ,   description:parsed.description || defaults['description'] || ""
+    ,   rollup:     parsed.rollup || defaults['rollup'] || ""
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ;
@@ -140,6 +143,7 @@ if (options.help) {
     ,   "   --failures*, -f to include any failure message text"
     ,   "   --markdown*, -m to interpret subtest name as Markdown"
     ,   "   --description*, -d description file to use to annotate the report."
+    ,   "   --rollup**, -r to combine the multiple results from the same implementation into a single column."
     ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
@@ -163,7 +167,55 @@ fs.readdirSync(options.input)
     .forEach(function (f) {
         if (!/^\w\w\d\d\.json$/.test(f)) return;
         reports.push(f);
-        consolidated[f.replace(/\.json$/, "")] = rjson(jn(options.input, f));
+        if (options.rollup) {
+            // we are combining all the files that start with \w\w
+            var name = f.substr(0,2);
+            if (consolidated[name]) {
+                // we already read in one of these; merge
+                var handle = rjson(jn(options.input, f)) ;
+                handle.results.forEach(function(newResult) {
+                    // testRef is a reference to the consolidated results for this platform
+                    var testRef = null;
+                    var test = newResult.test;
+                    // see if the test is in the collection
+                    consolidated[name].results.forEach(function(item) {
+                        if (item.test == test) {
+                            // found it!
+                            testRef = item;
+                        }
+                    });
+
+                    if (testRef) {
+                        newResult.subtests.forEach(function(newSubtest) {
+                            // find the subtest within the test
+                            var foundIt = false; 
+                            testRef.subtests.forEach(function(item) {
+                                if (item.name == newSubtest.name) {
+                                    // this subtest is in the consolidated already
+                                    foundIt = true;
+                                    // we already have this one...   is this result "better" ?
+                                    if (item.status !== "PASS" && newSubtest.status == "PASS") {
+                                        item.status = newSubtest.status;
+                                        item.message = newSubtest.message;
+                                    } 
+                                }
+                            });
+                            if (!foundIt) {
+                                // it wasn't in there already... add it
+                                testRef.subtests.push(newSubtest);
+                            }
+                        });
+                    } else {
+                        // this entire test is not yet in consolidated
+                        consolidated[name].results.push(theResults);
+                    }
+                });
+            } else {
+                consolidated[name] = rjson(jn(options.input, f));
+            }
+        } else {
+            consolidated[f.replace(/\.json$/, "")] = rjson(jn(options.input, f));
+        }
     })
 ;
 
