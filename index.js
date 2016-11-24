@@ -88,6 +88,41 @@ var fs = require("fs-extra")
         }
         return res;
     }
+,   sortNames = function (hashref) {
+        // get the list of keys into an array
+        var ret = Object.keys(hashref).map(function(name) { return name; });
+        ret.sort(function(a,b) {
+            // if they are the same, return 0
+            if (a === b ) {
+                return 0;
+            }
+
+            // if the names start with digits, then sort numerically
+
+            if (a.match(/^[0-9]+/)) {
+                var anum = a.replace(/ +.*$/,'');
+                var bnum = b.replace(/ +.*$/,'');
+                var alist = anum.split(':');
+                var blist = bnum.split(':');
+                var greater = Number(alist[0]) > Number(blist[0]) ;
+                if (alist[0] === blist[0] ) {
+                    greater = Number(alist[1]) > Number(blist[1]);
+                }
+                if (greater) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } else {
+                if (a < b) {
+                    return -1;
+                } else if (a > b) {
+                    return 1;
+                }
+            }
+        });
+        return ret;
+    }
 ;
 
 showdown.extension('strip', function() {
@@ -207,7 +242,7 @@ fs.readdirSync(options.input)
                         });
                     } else {
                         // this entire test is not yet in consolidated
-                        consolidated[name].results.push(theResults);
+                        consolidated[name].results.push(newResult);
                     }
                 });
             } else {
@@ -236,7 +271,7 @@ Object.keys(consolidated).forEach(function (agent) {
     consolidated[agent].results.forEach(function (testData) {
         var id = testData.test;
         if (filter.excludeFile(id)) return;
-        if (!testData.subtests.length) return;
+        if (!testData.hasOwnProperty("subtests") || !testData.subtests.length) return;
         subtestsPerTest[id] = true;
     });
 });
@@ -315,7 +350,7 @@ for (var test in out.results) {
     ,   testNum:    testCount
     };
     testCount ++;
-    for (var n in run.subtests) {
+    sortNames(run.subtests).forEach(function(n) {
         result.total++;
         totalSubtests++;
         if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
@@ -325,7 +360,7 @@ for (var test in out.results) {
             if (res === "PASS") uaPass[out.ua[i]]++;
         }
         result.subtests.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
-    }
+    });
     if (result.fails.length) lessThanTwo.push(result);
     if (result.boom.length) completeFail.push(result);
     all.push(result);
