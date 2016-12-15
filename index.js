@@ -25,6 +25,7 @@ var fs = require("fs-extra")
                 ,   description:String
                 ,   rollup:     Boolean
                 ,   failures:   Boolean
+                ,   sort:       Boolean
                 }
 ,   shortHands = {
                     i:      ["--input"]
@@ -159,6 +160,7 @@ var options = {
     ,   markdown:   parsed.markdown || defaults['markdown'] || false
     ,   description:parsed.description || defaults['description'] || ""
     ,   rollup:     parsed.rollup || defaults['rollup'] || ""
+    ,   sort:       parsed.sort || defaults['sort'] || false
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ;
@@ -179,6 +181,7 @@ if (options.help) {
     ,   "   --markdown*, -m to interpret subtest name as Markdown"
     ,   "   --description*, -d description file to use to annotate the report."
     ,   "   --rollup**, -r to combine the multiple results from the same implementation into a single column."
+    ,   "   --sort* to sort the test and subtests."
     ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
@@ -338,7 +341,17 @@ for (var i = 0, n = out.ua.length; i < n; i++) uaPass[out.ua[i]] = 0;
 
 var testCount = 0;
 
-for (var test in out.results) {
+var testList = [] ;
+
+if (options.sort) {
+    // we are sorting the test names
+    testList = Object.keys(out.results).sort();
+} else {
+    testList = Object.keys(out.results).map(function(name) { return name; });
+}
+
+
+testList.forEach(function(test) {
     var run = out.results[test]
     ,   result = {
         status:     run.byUA
@@ -364,7 +377,7 @@ for (var test in out.results) {
     if (result.fails.length) lessThanTwo.push(result);
     if (result.boom.length) completeFail.push(result);
     all.push(result);
-}
+});
 
 var startTable = "<thead><tr class='persist-header'><th>Test <span class='message_toggle'>Show/Hide Messages</span></th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
 ,   startToc = "<h3>Test Files</h3>\n<ol class='toc'>"
