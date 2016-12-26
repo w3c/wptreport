@@ -139,7 +139,7 @@ if (options.help) {
     ,   "                directory."
     ,   "   --failures*, -f to include any failure message text"
     ,   "   --markdown*, -m to interpret subtest name as Markdown"
-    ,   "   --description*, -d description file to use to annotation the report."
+    ,   "   --description*, -d description file to use to annotate the report."
     ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
