@@ -3,7 +3,7 @@
     "description":  "Report generator for Web Platform Test result sets",
     "homepage":     "https://github.com/w3c/wptreport",
     "repository": {
-        "type":     "git"
+        "type":     "git",
         "url" :     "https://github.com/w3c/wptreport.git"
     },
     "bugs":         "https://github.com/w3c/wptreport/issues",
