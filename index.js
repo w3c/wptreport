@@ -209,6 +209,11 @@ for (var agent in consolidated) {
         // if there is a message, then capture it so we can include it in the output
         if (testData.hasOwnProperty("message") && testData.message !== null) {
             out.results[id].UAmessage[agent] = testData.message;
+            if (testData.message.match(/NOTRUN:/)) {
+                testData.status = "NOTRUN";
+            } else if (testData.message.match(/SKIPPED:/)) {
+                testData.status = "NOTRUN";
+            }
         }
         out.results[id].byUA[agent] = testData.status;
         if (!out.results[id].totals[testData.status]) out.results[id].totals[testData.status] = 1;
@@ -234,7 +239,15 @@ for (var agent in consolidated) {
                 ;
                 if (filter.excludeCase(id, stName)) continue;
                 if (stName === "constructor") stName = "_constructor";
+                // if the message has a comment with a special result, use that to decide what to do
+                if (st.message && st.message.match(/NOTRUN:/)) {
+                    continue;
+                } else if (st.message && st.message.match(/SKIPPED:/)) {
+                    continue;
+                }
+
                 if (!out.results[id].subtests[stName]) out.results[id].subtests[stName] = { stNum: j, byUA: {}, UAmessage: {}, totals: {} };
+
                 out.results[id].subtests[stName].byUA[agent] = st.status;
                 if (!out.results[id].subtests[stName].totals[st.status]) out.results[id].subtests[stName].totals[st.status] = 1;
                 else out.results[id].subtests[stName].totals[st.status]++;
