@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* globals showdown */
-/* jshint laxcomma:true, strict:false, -W116 */
+/* jshint sub:true, laxcomma:true, strict:false, -W116 */
 
 var fs = require("fs-extra")
 ,   pth = require("path")
@@ -23,7 +23,9 @@ var fs = require("fs-extra")
                 ,   version:    Boolean
                 ,   markdown:   Boolean
                 ,   description:String
+                ,   rollup:     Boolean
                 ,   failures:   Boolean
+                ,   sort:       Boolean
                 }
 ,   shortHands = {
                     i:      ["--input"]
@@ -33,6 +35,7 @@ var fs = require("fs-extra")
                 ,   v:      ["--version"]
                 ,   m:      ["--markdown"]
                 ,   d:      ["--description"]
+                ,   r:      ["--rollup"]
                 ,   f:      ["--failures"]
                 }
 ,   out = {
@@ -86,6 +89,41 @@ var fs = require("fs-extra")
         }
         return res;
     }
+,   sortNames = function (hashref) {
+        // get the list of keys into an array
+        var ret = Object.keys(hashref).map(function(name) { return name; });
+        ret.sort(function(a,b) {
+            // if they are the same, return 0
+            if (a === b ) {
+                return 0;
+            }
+
+            // if the names start with digits, then sort numerically
+
+            if (a.match(/^[0-9]+/)) {
+                var anum = a.replace(/ +.*$/,'');
+                var bnum = b.replace(/ +.*$/,'');
+                var alist = anum.split(':');
+                var blist = bnum.split(':');
+                var greater = Number(alist[0]) > Number(blist[0]) ;
+                if (alist[0] === blist[0] ) {
+                    greater = Number(alist[1]) > Number(blist[1]);
+                }
+                if (greater) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } else {
+                if (a < b) {
+                    return -1;
+                } else if (a > b) {
+                    return 1;
+                }
+            }
+        });
+        return ret;
+    }
 ;
 
 showdown.extension('strip', function() {
@@ -121,6 +159,8 @@ var options = {
     ,   failures:   parsed.failures || defaults['failures'] || false
     ,   markdown:   parsed.markdown || defaults['markdown'] || false
     ,   description:parsed.description || defaults['description'] || ""
+    ,   rollup:     parsed.rollup || defaults['rollup'] || ""
+    ,   sort:       parsed.sort || defaults['sort'] || false
     }
 ,   prefix = options.spec ? options.spec + ": " : ""
 ;
@@ -140,6 +180,8 @@ if (options.help) {
     ,   "   --failures*, -f to include any failure message text"
     ,   "   --markdown*, -m to interpret subtest name as Markdown"
     ,   "   --description*, -d description file to use to annotate the report."
+    ,   "   --rollup**, -r to combine the multiple results from the same implementation into a single column."
+    ,   "   --sort* to sort the test and subtests."
     ,   "   --spec*, -s SpecName to use in titling the report."
     ,   "   --help, -h to produce this message."
     ,   "   --version, -v to show the version number."
@@ -163,7 +205,55 @@ fs.readdirSync(options.input)
     .forEach(function (f) {
         if (!/^\w\w\d\d\.json$/.test(f)) return;
         reports.push(f);
-        consolidated[f.replace(/\.json$/, "")] = rjson(jn(options.input, f));
+        if (options.rollup) {
+            // we are combining all the files that start with \w\w
+            var name = f.substr(0,2);
+            if (consolidated[name]) {
+                // we already read in one of these; merge
+                var handle = rjson(jn(options.input, f)) ;
+                handle.results.forEach(function(newResult) {
+                    // testRef is a reference to the consolidated results for this platform
+                    var testRef = null;
+                    var test = newResult.test;
+                    // see if the test is in the collection
+                    consolidated[name].results.forEach(function(item) {
+                        if (item.test == test) {
+                            // found it!
+                            testRef = item;
+                        }
+                    });
+
+                    if (testRef) {
+                        newResult.subtests.forEach(function(newSubtest) {
+                            // find the subtest within the test
+                            var foundIt = false; 
+                            testRef.subtests.forEach(function(item) {
+                                if (item.name == newSubtest.name) {
+                                    // this subtest is in the consolidated already
+                                    foundIt = true;
+                                    // we already have this one...   is this result "better" ?
+                                    if (item.status !== "PASS" && newSubtest.status == "PASS") {
+                                        item.status = newSubtest.status;
+                                        item.message = newSubtest.message;
+                                    } 
+                                }
+                            });
+                            if (!foundIt) {
+                                // it wasn't in there already... add it
+                                testRef.subtests.push(newSubtest);
+                            }
+                        });
+                    } else {
+                        // this entire test is not yet in consolidated
+                        consolidated[name].results.push(newResult);
+                    }
+                });
+            } else {
+                consolidated[name] = rjson(jn(options.input, f));
+            }
+        } else {
+            consolidated[f.replace(/\.json$/, "")] = rjson(jn(options.input, f));
+        }
     })
 ;
 
@@ -184,7 +274,7 @@ Object.keys(consolidated).forEach(function (agent) {
     consolidated[agent].results.forEach(function (testData) {
         var id = testData.test;
         if (filter.excludeFile(id)) return;
-        if (!testData.subtests.length) return;
+        if (!testData.hasOwnProperty("subtests") || !testData.subtests.length) return;
         subtestsPerTest[id] = true;
     });
 });
@@ -264,7 +354,17 @@ for (var i = 0, n = out.ua.length; i < n; i++) uaPass[out.ua[i]] = 0;
 
 var testCount = 0;
 
-for (var test in out.results) {
+var testList = [] ;
+
+if (options.sort) {
+    // we are sorting the test names
+    testList = Object.keys(out.results).sort();
+} else {
+    testList = Object.keys(out.results).map(function(name) { return name; });
+}
+
+
+testList.forEach(function(test) {
     var run = out.results[test]
     ,   result = {
         status:     run.byUA
@@ -276,7 +376,7 @@ for (var test in out.results) {
     ,   testNum:    testCount
     };
     testCount ++;
-    for (var n in run.subtests) {
+    sortNames(run.subtests).forEach(function(n) {
         result.total++;
         totalSubtests++;
         if (!run.subtests[n].totals.PASS || run.subtests[n].totals.PASS < 2) result.fails.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
@@ -286,11 +386,11 @@ for (var test in out.results) {
             if (res === "PASS") uaPass[out.ua[i]]++;
         }
         result.subtests.push({ name: n, stNum: run.subtests[n].stNum, byUA: run.subtests[n].byUA, UAmessage: run.subtests[n].UAmessage });
-    }
+    });
     if (result.fails.length) lessThanTwo.push(result);
     if (result.boom.length) completeFail.push(result);
     all.push(result);
-}
+});
 
 var startTable = "<thead><tr class='persist-header'><th>Test <span class='message_toggle'>Show/Hide Messages</span></th><th>" + out.ua.join("</th><th>") + "</th></tr></thead>\n"
 ,   startToc = "<h3>Test Files</h3>\n<ol class='toc'>"
