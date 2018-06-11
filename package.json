@@ -23,6 +23,6 @@
         "test",
         "tests",
         "results",
-        "wpt",
+        "wpt"
     ]
 }
