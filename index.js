@@ -89,6 +89,12 @@ var fs = require("fs-extra")
         }
         return res;
     }
+,   formatDate = function (date) {
+        // format a Date, "Aug 21, 2019"
+        // date is a date object
+        const options = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' };
+        return date.toLocaleString('en-US', options);
+    }
 ,   sortNames = function (hashref) {
         // get the list of keys into an array
         var ret = Object.keys(hashref).map(function(name) { return name; });
@@ -447,7 +453,8 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
     ;
     for (var i = 0, n = lessThanTwo.length; i < n; i++) {
         var test = lessThanTwo[i]
-        ,   details = "<small>(" + test.fails.length + "/" + test.total + ", " +
+        ,   details = "<small>(As of " + formatDate(new Date()) + ", "
+                     + test.fails.length + "/" + test.total + ", " +
                      (100 * test.fails.length / test.total).toFixed(2) + "%, " +
                      (100 * test.fails.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
