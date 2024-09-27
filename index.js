@@ -458,7 +458,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
                      (100 * test.fails.length / test.total).toFixed(2) + "%, " +
                      (100 * test.fails.length / totalSubtests).toFixed(2) + "% of total)</small>"
         ;
-        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='https://wpt.live" + esc(test.name) + "' target='_blank'>" +
+        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='http://wpt.live" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a> " + details + "</td>" + cells(test.status) + "</tr>\n";
         toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a> " + details + "</li>\n";
         for (var j = 0, m = test.fails.length; j < m; j++) {
