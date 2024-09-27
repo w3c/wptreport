@@ -413,7 +413,7 @@ var startTable = "<thead><tr class='persist-header'><th>Test <span class='messag
     ;
     for (var i = 0, n = all.length; i < n; i++) {
         var test = all[i];
-        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='https://wpt.live" + esc(test.name) + "' target='_blank'>" +
+        table += "<tr class='test' id='test-file-" + test.testNum + "'><td><a href='http://wpt.live" + esc(test.name) + "' target='_blank'>" +
                  esc(test.name) + "</a></td>" + cells(test.status) + "</tr>\n";
         toc += "<li><a href='#test-file-" + i + "'>" + esc(test.name) + "</a></li>\n";
         for (var j = 0, m = test.subtests.length; j < m; j++) {
